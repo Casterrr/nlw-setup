@@ -1,8 +1,9 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
 }
 
 datasource db {
@@ -15,5 +16,48 @@ model Habit {
   title      String
   created_at DateTime
 
-  @@map("habits")
+  dayHabits DayHabit[]
+  weekDays  HabitWeekDays[]
+
+  @@map("habits") // Diz o nome da tabela (se não disse o nome da tabela dessa forma, o nome da tabela seria o mesmo nome desse modelo, ou seja, "Habit".)
+}
+
+model HabitWeekDays {
+  // A tabela gerada por esse modelo será utilizara para registrar os dias da semanda que um hábito será recorrente. Exemplo, o hábito "Beber 2L de água" é recorrente nas segundas, terças e quartas.
+
+  id       String @id @default(uuid())
+  habit_id String
+  week_day Int
+
+  habit Habit @relation(fields: [habit_id], references: [id])
+
+  @@unique([habit_id, week_day]) // Um hábito só pode estar cadastro uma vez com um dia. Exemplo: Se tentar cadastrar um mesmo hábito duas vezes no mesmo dia, não vai deixar.
+  @@map("habit_week_days") // Diz o nome da tabela (se não disse o nome da tabela dessa forma, o nome da tabela seria o mesmo nome desse modelo, ou seja, "HabitWeekDays".)
+}
+
+model Day {
+  // A tabela gerada por esse modelo vai ser usada pra registrar quais hábitos foram completados em cada dia
+
+  id   String   @id @default(uuid())
+  date DateTime
+
+  dayHabits DayHabit[] // Indica que a tabela gerada por esse modelo possui um relacionamento com a tabela gerada pelo modelo DayHabit
+
+  @@index([date])
+  @@map("days") // Diz o nome da tabela (se não disse o nome da tabela dessa forma, o nome da tabela seria o mesmo nome desse modelo, ou seja, "Day".)
+}
+
+model DayHabit {
+  // A tabela gerada por esse modelo será usada relacionar um dia com um hábito
+
+  id String @id @default(uuid())
+
+  day_id   String
+  habit_id String
+
+  day   Day   @relation(fields: [day_id], references: [id]) // Declara que há um relacionamento entre a tabela gerada por esse modelo e a tabela de dias através do campo "day_id"
+  habit Habit @relation(fields: [habit_id], references: [id])
+
+  @@unique([day_id, habit_id]) // Um hábito só pode estar cadastro uma vez com um dia. Exemplo: Se tentar cadastrar um mesmo hábito duas vezes no mesmo dia, não vai deixar.
+  @@map("day_habits") // Diz o nome da tabela (se não disse o nome da tabela dessa forma, o nome da tabela seria o mesmo nome desse modelo, ou seja, "DayHabit".)
 }
